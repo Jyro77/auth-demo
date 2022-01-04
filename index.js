@@ -2,6 +2,9 @@ const express = require('express');
 const app = express();
 const User = require('./models/user');
 
+app.set('view engine', 'ejs');
+app.set('views', 'views');
+
 app.get('/secret', (req, res) => {
     res.send('This is secret! You cannot see me unless you are logged in!')
 })
