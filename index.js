@@ -22,6 +22,21 @@ app.get('/', (req, res) => {
     res.send('This is the home page!');
 })
 
+app.get('/login', (req, res) => {
+    res.render('login')
+})
+
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+    const validPass = await bcrypt.compare(password, user.password);
+    if(validPass){
+        res.send("Congrats!");
+    } else {
+        res.send("Good try, lets try again");
+    } 
+})
+
 app.get('/register', (req, res) => {
     res.render('register')
 })
