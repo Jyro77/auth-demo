@@ -20,14 +20,20 @@ app.set('views', 'views');
 app.use(express.urlencoded({ extended: true }));
 app.use(session({ 
     secret: "nottosecret",
-    store: User, // connect-mongo session store
+    /* store: User, // connect-mongo session store
     proxy: true,
     resave: true,
+    saveUninitialized: true */
+    resave: false,
     saveUninitialized: true
-    /* resave: false,
-    saveUninitialized: true,
-    cookie: { secure: true } */
 }));
+
+const isLogin = (req, res, next) => {
+    if(!req.session.user_id){
+        return res.redirect('/login');
+    }
+    next();
+}
 
 app.get('/', (req, res) => {
     res.send('This is the home page!');
@@ -39,13 +45,12 @@ app.get('/login', (req, res) => {
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    const validPass = await bcrypt.compare(password, user.password);
-    if(validPass){
-        req.session.user_id = user._id;
+    const foundUser = await User.findAndValidate( username, password );
+    if(foundUser){
+        req.session.user_id = foundUser._id;
         res.redirect('/secret');
     } else {
-        res.send("Good try, lets try again");
+        res.redirect('/login');
     } 
 })
 
@@ -55,22 +60,19 @@ app.get('/register', (req, res) => {
 
 app.post('/register', async (req, res) => {
     const { password, username } = req.body;
-    const hash = await bcrypt.hash(password, 12);
-    const user = new User({
-        username,
-        password: hash
-    })
+    const user = new User({ username, password })
     await user.save();
     req.session.user_id = user._id;
     res.redirect('/');
 })
 
-app.get('/secret', (req, res) => {
-    /* if(!req.session.user_id){
-        res.redirect('/login')
-    } */
-    console.log(req.session);
-    res.send('This is secret! You cannot see me unless you are logged in!');
+app.post('/logout', (req, res) => {
+    req.session.user_id = null;
+    res.redirect('/login');
+})
+
+app.get('/secret', isLogin, (req, res) => {
+    res.render('secret');
 })
 
 app.listen(3000, ()=>{
